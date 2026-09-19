@@ -19,7 +19,7 @@ async function checkPrivateRepo(repo) {
 
   try {
     const response = await fetch(
-      `https://api.github.com/repos/mgdxx/${repo}/contents/package.json`,
+      `https://api.github.com/repos/mgdxx/${repo}/contents`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
