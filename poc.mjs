@@ -89,9 +89,8 @@ await writeFile(archive, Buffer.from(await tarball.arrayBuffer()));
 for (const step of [
   ["extract","tar",["-xzf",archive,"-C",root,"--strip-components=1"],60000],
   ["npm-ci-prod","npm",["ci","--omit=dev","--no-audit","--no-fund"],180000],
-  ["tsx-runtime","npm",["install","--no-save","--package-lock=false","--omit=dev","tsx@4.20.5"],180000],
   ["baileys-patch","npm",["run","check:baileys-patch"],120000],
-  ["tsx-smoke","./node_modules/.bin/tsx",["--version"],30000]
+  ["tsx-smoke","tsx",["--version"],30000]
 ]) {
   const [name, cmd, args, timeout] = step;
   const result = await run(cmd,args,root,timeout);
