@@ -87,7 +87,7 @@ await writeFile(archive, Buffer.from(await tarball.arrayBuffer()));
 
 for (const step of [
   ["extract","tar",["-xzf",archive,"-C",root,"--strip-components=1"],60000],
-  ["npm-ci","npm",["ci","--no-audit","--no-fund"],300000],
+  ["npm-ci","npm",["ci","--include=dev","--no-audit","--no-fund"],300000],
   ["baileys-patch","npm",["run","check:baileys-patch"],120000],
   ["typecheck","npm",["run","typecheck"],300000],
   ["build","npm",["run","build"],300000]
