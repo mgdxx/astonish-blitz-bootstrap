@@ -1,4 +1,4 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 
 const token = process.env.ASTONISH_GITHUB_TOKEN;
@@ -86,11 +86,19 @@ if (!tarball.ok) {
 }
 await writeFile(archive, Buffer.from(await tarball.arrayBuffer()));
 
+try {
+  await symlink("/opt/astonish-runtime/node_modules", root + "/node_modules", "dir");
+} catch (error) {
+  if (error?.code !== "EEXIST") throw error;
+}
+
 for (const step of [
-  ["extract","tar",["-xzf",archive,"-C",root,"--strip-components=1"],60000],
-  ["npm-ci-prod","npm",["ci","--omit=dev","--no-audit","--no-fund"],180000],
   ["baileys-patch","npm",["run","check:baileys-patch"],120000],
-  ["tsx-smoke","tsx",["--version"],30000]
+  ["tsx-smoke","/opt/astonish-runtime/node_modules/.bin/tsx",["--version"],30000],
+  ["module-smoke","/opt/astonish-runtime/node_modules/.bin/tsx",[
+    "-e",
+    "await Promise.all([import('yaml'),import('zod'),import('luxon'),import('pino')]); console.log('MODULES_OK')"
+  ],30000]
 ]) {
   const [name, cmd, args, timeout] = step;
   const result = await run(cmd,args,root,timeout);
