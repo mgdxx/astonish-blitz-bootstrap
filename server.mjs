@@ -1,4 +1,5 @@
 import http from "node:http";
+import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 
 const port = Number(process.env.PORT || 8080);
@@ -13,39 +14,20 @@ try {
 bootCount += 1;
 await writeFile(counterPath, String(bootCount) + "\n", "utf8");
 
-async function checkPrivateRepo(repo) {
-  const token = process.env.ASTONISH_GITHUB_TOKEN;
-  if (!token) return { repo, ok: false, status: "TOKEN_MISSING" };
+let pocState = "starting";
+let pocExit = null;
 
-  try {
-    const response = await fetch(
-      `https://api.github.com/repos/mgdxx/${repo}/contents`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-          "User-Agent": "astonish-blitz-bootstrap"
-        },
-        signal: AbortSignal.timeout(10_000)
-      }
-    );
-    return { repo, ok: response.ok, status: response.status };
-  } catch {
-    return { repo, ok: false, status: "NETWORK_ERROR" };
-  }
-}
-
-const repoChecks = await Promise.all([
-  checkPrivateRepo("astonish-subscription-renewal"),
-  checkPrivateRepo("trello-subscription-renewal"),
-  checkPrivateRepo("astonish-vip")
-]);
-
-console.log(JSON.stringify({
-  event: "PRIVATE_REPO_ACCESS",
-  checks: repoChecks
-}));
+const poc = spawn(process.execPath, ["/app/poc.mjs"], {
+  env: process.env,
+  stdio: ["ignore", "pipe", "pipe"]
+});
+poc.stdout.on("data", d => process.stdout.write(d));
+poc.stderr.on("data", d => process.stderr.write(d));
+poc.on("close", code => {
+  pocExit = code;
+  pocState = code === 0 ? "passed" : "failed";
+  console.log(JSON.stringify({ event: "ASTONISH_POC_EXIT", code, state: pocState }));
+});
 
 const server = http.createServer((req, res) => {
   const body = JSON.stringify({
@@ -56,7 +38,8 @@ const server = http.createServer((req, res) => {
     rssMB: Math.round(process.memoryUsage().rss / 1024 / 1024),
     node: process.version,
     arch: process.arch,
-    privateRepoAccess: repoChecks
+    pocState,
+    pocExit
   });
   res.writeHead(200, { "content-type": "application/json; charset=utf-8" });
   res.end(body);
@@ -64,6 +47,9 @@ const server = http.createServer((req, res) => {
 
 server.listen(port, "0.0.0.0");
 
-const shutdown = () => server.close(() => process.exit(0));
+const shutdown = () => {
+  try { poc.kill("SIGTERM"); } catch {}
+  server.close(() => process.exit(0));
+};
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
