@@ -16,7 +16,7 @@ RUN npm init -y >/dev/null 2>&1 \
  && chown -R 1000:1000 /opt/astonish-runtime
 
 WORKDIR /app
-COPY poc.mjs ./
+COPY server.mjs poc.mjs ./
 
 RUN mkdir -p /data /tmp/astonish-poc \
  && chown -R 1000:1000 /app /data /tmp/astonish-poc
@@ -26,4 +26,4 @@ ENV NODE_ENV=production
 
 VOLUME ["/data"]
 
-CMD ["node", "poc.mjs"]
+CMD ["node", "server.mjs"]
