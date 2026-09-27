@@ -1,1 +1,1 @@
-PAUSE verify-chat-control
+RESUME chat-command
