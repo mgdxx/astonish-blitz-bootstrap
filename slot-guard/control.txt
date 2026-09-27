@@ -1,1 +1,1 @@
-PAUSE bootstrap
+PAUSE verify-chat-control
