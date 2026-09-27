@@ -1,1 +1,1 @@
-RESUME bootstrap
+PAUSE bootstrap
