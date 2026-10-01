@@ -1,1 +1,1 @@
-RESUME chat-command
+PAUSE
